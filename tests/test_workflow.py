@@ -230,3 +230,30 @@ def test_workflows_do_not_inject_inputs_into_shell():
         for m in re.finditer(r"^\s+run:\s*(.+)$", text, re.M):
             assert "${{" not in m.group(1), (f.name, m.group(1))
         assert "permissions:" in text and "REQUIRE_APPROVAL" in text
+
+
+def test_next_batch_when_too_few_fit(settings, icp, proofs, monkeypatch):
+    from outbound import runner
+    batches = [[{"company": "A", "domain": "a.com"}, {"company": "B", "domain": None}], [{"company": "C", "domain": "c.com"}], []]
+    monkeypatch.setattr("outbound.discover.discover", lambda *a, **k: batches.pop(0))
+    verdicts = {"a.com": "REJECT", "c.com": "QUALIFY"}
+    monkeypatch.setattr(runner, "run_batch", lambda ds, d, p=None: [{"domain": x, "verdict_final": verdicts[x]} for x in ds])
+    out = runner.run_until_fits(deps_for(settings, icp, proofs, FakeLLM()), min_fits=1)
+    assert out == {"rounds": 2, "fits": 1, "researched": 2, "flagged": 1}  # stopped once enough fit; second batch fetched because first had none
+
+
+def test_flagged_lead_can_be_resolved_by_a_human(tmp_path):
+    from outbound.db import connect, now
+    from outbound.discover import list_flagged, resolve_flagged
+    db = tmp_path / "f.db"
+    with connect(db) as c:
+        c.execute("INSERT INTO candidates(domain,company,headline,status,flag_reason,found_at) VALUES('?acme','Acme','Acme raises $5M seed','flagged','no homepage matched',?)", (now(),))
+    assert list_flagged(db)[0]["key"] == "?acme"
+    with pytest.raises(ValueError):
+        resolve_flagged(db, "?acme", "../etc")
+    assert resolve_flagged(db, "?acme", "https://www.Acme.io/") == "acme.io"
+    assert list_flagged(db) == []
+    with connect(db) as c:
+        assert c.execute("SELECT status FROM candidates WHERE domain='acme.io'").fetchone()[0] == "queued"
+    with pytest.raises(LookupError):
+        resolve_flagged(db, "?acme", "acme.io")

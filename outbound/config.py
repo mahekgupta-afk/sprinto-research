@@ -26,9 +26,9 @@ class Settings:
     to_email: str = ""
     from_email: str = "onboarding@resend.dev"
     sender_name: str = "Sprinto Growth"
-    model_fast: str = "gemini-2.5-flash"
-    model_strong: str = "gemini-2.5-pro"
-    model_grounding: str = "gemini-2.5-flash"
+    model_fast: str = "gemini-3-flash-preview"
+    model_strong: str = "gemini-3.1-pro-preview"
+    model_grounding: str = "gemini-3-flash-preview"
     min_interval: float = 6.5
     require_approval: bool = True
     out_dir: Path = field(default_factory=lambda: ROOT / "out")
@@ -61,9 +61,9 @@ def load_settings(env: Optional[Dict[str, str]] = None, env_file: Optional[Path]
         gemini_api_key=g("GEMINI_API_KEY"), resend_api_key=g("RESEND_API_KEY"),
         hunter_api_key=g("HUNTER_API_KEY"), to_email=g("TO_EMAIL"),
         from_email=g("FROM_EMAIL", "onboarding@resend.dev"), sender_name=g("SENDER_NAME", "Sprinto Growth"),
-        model_fast=g("GEMINI_MODEL_FAST", "gemini-2.5-flash"),
-        model_strong=g("GEMINI_MODEL_STRONG", "gemini-2.5-pro"),
-        model_grounding=g("GEMINI_MODEL_GROUNDING", "gemini-2.5-flash"),
+        model_fast=g("GEMINI_MODEL_FAST", "gemini-3-flash-preview"),
+        model_strong=g("GEMINI_MODEL_STRONG", "gemini-3.1-pro-preview"),
+        model_grounding=g("GEMINI_MODEL_GROUNDING", "gemini-3-flash-preview"),
         min_interval=float(g("GEMINI_MIN_INTERVAL", "6.5")),
         require_approval=g("REQUIRE_APPROVAL", "true").lower() not in ("0", "false", "no"),
     )

@@ -12,6 +12,19 @@ class LLMError(RuntimeError):
     pass
 
 
+def _retry(fn, sleep, tries=3):
+    """Retry only transient server errors (503/500), with a short backoff. Quota (429) and client errors fail fast."""
+    for i in range(tries):
+        try:
+            return fn()
+        except Exception as e:  # noqa: BLE001
+            code = getattr(e, "code", None) or getattr(e, "status_code", None)
+            if code in (500, 503) and i < tries - 1:
+                sleep(3 * (i + 1))
+                continue
+            raise
+
+
 class LLM:
     def __init__(self, settings: Settings, client: Any = None,
                  sleep: Callable[[float], None] = time.sleep, clock: Callable[[], float] = time.monotonic):
@@ -42,10 +55,10 @@ class LLM:
         self._pace()
         model = self.s.model_strong if strong else self.s.model_fast
         try:
-            r = self.client.models.generate_content(
+            r = _retry(lambda: self.client.models.generate_content(
                 model=model, contents=prompt,
                 config=types.GenerateContentConfig(
-                    response_mime_type="application/json", response_schema=schema, temperature=0.2))
+                    response_mime_type="application/json", response_schema=schema, temperature=0.2)), self._sleep)
             data = json.loads(r.text)
             return schema.model_validate(data).model_dump()
         except Exception as e:  # noqa: BLE001

@@ -23,7 +23,7 @@ jobs:
           HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}
           TO_EMAIL: ${{ secrets.TO_EMAIL }}
           REQUIRE_APPROVAL: "true"
-        run: python main.py run --discovered --limit 10
+        run: python main.py run --discovered
       - uses: actions/upload-artifact@v4
         with:
           name: out

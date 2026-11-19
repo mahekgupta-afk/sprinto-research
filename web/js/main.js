@@ -9,12 +9,12 @@ let pollTimer = null;
 
 function route() { const r = (location.hash.match(/^#\/(\w+)/) || [])[1]; return ["home", "queue", "accounts", "pipeline"].includes(r) ? r : "home"; }
 
-function draw() {
+async function draw() {
   const r = route();
   document.querySelectorAll("#nav a").forEach((a) => (a.dataset.route === r ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
   document.title = `${{ home: "Home", queue: "Queue", accounts: "Accounts", pipeline: "Pipeline" }[r]} · Outbound Autopilot`;
   if (r === "home") renderHome(main, rows, openDrawer);
-  else if (r === "queue") renderQueue(main, rows, openDrawer);
+  else if (r === "queue") await renderQueue(main, rows, openDrawer);
   else if (r === "accounts") renderAccounts(main, rows, openDrawer, startPolling);
   else renderPipeline(main, rows, openDrawer);
 }

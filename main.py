@@ -21,7 +21,7 @@ def main(argv):
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate")
     d = sub.add_parser("discover"); d.add_argument("--limit", type=int, default=None)
-    r = sub.add_parser("run"); r.add_argument("domains", nargs="*"); r.add_argument("--discovered", action="store_true"); r.add_argument("--limit", type=int, default=None)
+    r = sub.add_parser("run"); r.add_argument("domains", nargs="*"); r.add_argument("--discovered", action="store_true"); r.add_argument("--limit", type=int, default=None); r.add_argument("--min-fits", type=int, default=None, help="keep fetching the next batch until this many companies fit")
     sub.add_parser("pending")
     sub.add_parser("learn")
     s = sub.add_parser("serve"); s.add_argument("--port", type=int, default=8000)
@@ -66,7 +66,10 @@ def main(argv):
         print("\n".join("- " + x for x in rules) or "nothing to learn from yet")
         return 0
     show = lambda dom, t: print("%-32s %-18s %s" % (dom, t["status"], t.get("error", "")))
-    if a.discovered:
+    if a.discovered and a.min_fits is not None or (a.discovered and a.limit is None):
+        from outbound.runner import run_until_fits
+        print(run_until_fits(deps, a.min_fits, show))
+    elif a.discovered:
         run_discovered(deps, a.limit, show)
     elif a.domains:
         from run import read_domains

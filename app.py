@@ -116,6 +116,9 @@ def make_server(port: int = 8000, out_dir: Path = None, web_dir: Path = None, ru
             path = urlparse(self.path).path
             if path == "/api/accounts":
                 return self._json(200, list_accounts(out_dir))
+            if path == "/api/flagged":
+                from outbound.discover import list_flagged
+                return self._json(200, list_flagged(out_dir / "autopilot.db"))
             if path == "/api/job":
                 return self._json(200, job.snapshot())
             m = api_re.match(path)
@@ -190,6 +193,15 @@ def make_server(port: int = 8000, out_dir: Path = None, web_dir: Path = None, ru
                 job.update(state="running", total=len(clean), done=0, current="", error="")
                 threading.Thread(target=runner, args=(clean, job, out_dir), daemon=True).start()
                 return self._json(202, {"started": len(clean)})
+            if path == "/api/flagged/resolve":
+                from outbound.discover import resolve_flagged
+                try:
+                    d = resolve_flagged(out_dir / "autopilot.db", str(body.get("key", "")), str(body.get("domain", "")))
+                    return self._json(200, {"domain": d})
+                except ValueError as e:
+                    return self._json(400, {"error": str(e)})
+                except LookupError as e:
+                    return self._json(404, {"error": str(e)})
             if path == "/api/discover":
                 lim = body.get("limit", 10)
                 if not isinstance(lim, int) or not 1 <= lim <= 25:

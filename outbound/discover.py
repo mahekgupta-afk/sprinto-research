@@ -16,7 +16,7 @@ from .db import connect, now
 from .resolve import resolve
 
 FEED = "https://news.google.com/rss/search?q=%s&hl=en-US&gl=US&ceid=US:en"
-VERB = r"(?:raises|raised|secures|secured|closes|closed|lands|bags|nabs|announces|snags|banks)"
+VERB = r"(?:raises|raised|secures|secured|closes|closed|lands|landed|bags|nabs|announces|snags|banks|gets|receives|completes|scores|brings in|unveils)"
 HEAD = re.compile(r"^(?P<company>[A-Z0-9][^,:;|]{1,60}?)\s+%s\b" % VERB, re.I)
 AMOUNT = re.compile(r"\$\s?(?P<n>\d+(?:\.\d+)?)\s?(?P<u>million|billion|m|b|mn|bn)\b", re.I)
 ROUND = re.compile(r"\b(pre-?seed|seed|series\s+[a-c])\b", re.I)
@@ -130,3 +130,24 @@ def discover(client: httpx.Client, db, limit: Optional[int] = None, cfg: Optiona
                 conn.execute("INSERT OR REPLACE INTO candidates(domain,company,headline,url,round,amount_musd,published,score,status,flag_reason,found_at) "
                              "VALUES(?,?,?,?,?,?,?,?, 'flagged', ?, ?)", ("?" + re.sub(r"[^a-z0-9]", "", c["company"].lower()), c["company"], c["headline"], c["url"], c["round"], c["amount_musd"], c["published"], c["score"], note, now()))
     return out
+
+
+def list_flagged(db) -> List[dict]:
+    with connect(db) as c:
+        return [dict(r) for r in c.execute("SELECT domain AS key, company, headline, url, round, flag_reason FROM candidates WHERE status='flagged' ORDER BY found_at DESC")]
+
+
+def resolve_flagged(db, key: str, domain: str) -> str:
+    """A human supplies the domain for a flagged lead; it becomes a normal queued candidate."""
+    from .config import clean_domain, valid_domain
+    d = clean_domain(domain)
+    if not valid_domain(d):
+        raise ValueError("not a valid domain")
+    with connect(db) as c:
+        row = c.execute("SELECT * FROM candidates WHERE domain=? AND status='flagged'", (key,)).fetchone()
+        if not row:
+            raise LookupError("no such flagged lead")
+        c.execute("DELETE FROM candidates WHERE domain=?", (key,))
+        c.execute("INSERT OR REPLACE INTO candidates(domain,company,headline,url,round,amount_musd,published,score,status,found_at) VALUES(?,?,?,?,?,?,?,?, 'queued', ?)",
+                  (d, row["company"], row["headline"], row["url"], row["round"], row["amount_musd"], row["published"], row["score"], now()))
+    return d

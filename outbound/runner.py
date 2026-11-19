@@ -41,3 +41,20 @@ def run_discovered(deps: Deps, limit: Optional[int] = None, on_progress=None) ->
     from .discover import discover
     found = discover(deps.http, deps.settings.db_path, limit)
     return run_batch([c["domain"] for c in found if c["domain"]], deps, on_progress)
+
+
+def run_until_fits(deps: Deps, min_fits: Optional[int] = None, on_progress=None) -> dict:
+    """Discover a batch, research it, and if too few companies fit the ICP fetch the next batch (cooldown skips repeats)."""
+    from .discover import discover, load_cfg
+    cfg = load_cfg()
+    want, rounds = min_fits or cfg["min_fits"], cfg["max_rounds"]
+    fits, flagged, done = 0, 0, []
+    for n in range(rounds):
+        found = discover(deps.http, deps.settings.db_path, cfg["max_candidates"], cfg=cfg)
+        flagged += sum(1 for c in found if not c["domain"])
+        res = run_batch([c["domain"] for c in found if c["domain"]], deps, on_progress)
+        done += res
+        fits += sum(1 for t in res if t.get("verdict_final") in ("PRIORITY", "QUALIFY"))
+        if fits >= want or not found:
+            break
+    return {"rounds": n + 1, "fits": fits, "researched": len(done), "flagged": flagged}

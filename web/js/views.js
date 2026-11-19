@@ -148,8 +148,9 @@ function runBox(onRun) {
     h("div", { class: "row" }, btn, find, status));
 }
 
-export function renderQueue(root, rows, openAccount) {
+export async function renderQueue(root, rows, openAccount) {
   clear(root);
+  const flagged = await api.flagged().catch(() => []);
   const list = rows.filter((r) => r.status === "pending_approval");
   root.append(h("div", { class: "page-h" }, h("h1", { text: "Queue" }), h("p", { text: "Drafts that passed every rule and wait for you. Nothing is sent until you approve. Your edits and ratings teach the next drafts." })),
     list.length ? h("div", { class: "table-scroll" }, h("table", { class: "ledger acc-table" },
@@ -160,7 +161,26 @@ export function renderQueue(root, rows, openAccount) {
         h("td", { "data-label": "Subject" }, r.subject, h("div", { class: "quote", text: r.body_preview })),
         h("td", { class: "n", "data-label": "Reviewer" }, r.reviewer_avg == null ? "n/a" : fmt(r.reviewer_avg)),
         h("td", {}, h("button", { class: "btn", type: "button", onclick: () => openAccount(r.domain, "email"), text: "Review draft" }))))))) :
-      h("p", { class: "empty", text: "Nothing is waiting. Run research on the Accounts view." }));
+      h("p", { class: "empty", text: "Nothing is waiting. Run research on the Accounts view." }),
+    flaggedBlock(flagged));
+}
+
+function flaggedBlock(list) {
+  if (!list.length) return null;
+  const status = h("p", { class: "saved", role: "status" });
+  return h("section", { class: "flagged" }, h("h2", { text: `Flagged leads (${list.length})` }),
+    h("p", { class: "note", text: "The rules were unsure which website belongs to these companies. Type the right domain and it is researched like any other." }),
+    status,
+    h("ul", { class: "needs" }, list.map((f) => {
+      const input = h("input", { type: "text", "aria-label": `Domain for ${f.company}`, placeholder: "domain.com", disabled: DEMO });
+      const btn = h("button", { class: "btn", type: "button", disabled: DEMO, text: "Use this domain" });
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        try { const r = await api.resolveFlagged(f.key, input.value); await api.run([r.domain]); status.textContent = `${f.company}: researching ${r.domain}. It appears in Accounts when done.`; btn.closest("li").remove(); }
+        catch (e) { status.textContent = `${f.company}: ${e.message}`; btn.disabled = false; }
+      });
+      return h("li", {}, h("div", {}, h("b", { text: f.company }), h("span", { text: `${f.round || ""} · ${f.flag_reason}` }), h("span", { class: "quote", text: f.headline })), h("div", { class: "row" }, input, btn));
+    })));
 }
 
 const COLUMNS = [["screened_out", "Screened out"], ["needs_you", "Needs you"], ["approval", "Awaiting approval"], ["sent", "Sent"], ["contacted", "Contacted"], ["replied", "Replied"], ["meeting", "Meeting"], ["dead", "Closed"]];

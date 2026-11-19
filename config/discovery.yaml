@@ -4,9 +4,19 @@ queries:
   - "raises Series A software startup"
   - "raises Series B SaaS platform"
   - "secures funding B2B software"
+  - "raises seed funding AI platform for businesses"
+  - "closes Series A fintech software"
+  - "raises Series A healthtech software"
+  - "raises Series A cybersecurity startup"
+  - "raises Series B developer platform"
+  - "secures seed funding enterprise software"
+  - "raises Series A data infrastructure"
+  - "lands funding compliance automation startup"
 rounds_allowed: [seed, pre-seed, series a, series b, series c]
-amount_musd: {min: 2, max: 80}
-max_age_days: 45
+amount_musd: {min: 2, max: 120}
+max_age_days: 90
 cooldown_days: 90
-max_candidates: 10
+max_candidates: 20
+min_fits: 5        # if fewer companies qualify, fetch the next batch
+max_rounds: 3
 exclude_words: [acquires, acquired, acquisition, layoffs, ipo, bankruptcy, crypto, token, nft, biotech, pharma, therapeutics, fund, venture capital firm, spac]

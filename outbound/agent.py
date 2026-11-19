@@ -14,7 +14,7 @@ from .scrape import Outcome, Page, fetch
 
 ALLOWED_PATHS = ["/", "/pricing", "/security", "/trust", "/customers", "/about", "/careers", "/enterprise",
                  "/blog", "/docs", "/integrations", "/solutions", "/compliance", "/contact"]
-BUDGET = {"tool_calls": 4, "searches": 2, "seconds": 120}
+BUDGET = {"tool_calls": 3, "searches": 2, "seconds": 120}
 TOOLS = ("fetch_page", "web_research", "job_postings")
 
 

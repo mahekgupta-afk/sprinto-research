@@ -20,6 +20,8 @@ export const api = {
   run: (domains) => { if (DEMO) throw new Error("read-only demo"); return postJSON("/api/run", { domains }); },
   approve: (d, body) => { if (DEMO) throw new Error("read-only demo"); return postJSON(`/api/account/${encodeURIComponent(d)}/approve`, body); },
   reject: (d, body) => { if (DEMO) throw new Error("read-only demo"); return postJSON(`/api/account/${encodeURIComponent(d)}/reject`, body); },
+  flagged: () => (DEMO ? Promise.resolve([]) : getJSON("/api/flagged")),
+  resolveFlagged: (key, domain) => { if (DEMO) throw new Error("read-only demo"); return postJSON("/api/flagged/resolve", { key, domain }); },
   discover: (limit) => { if (DEMO) throw new Error("read-only demo"); return postJSON("/api/discover", { limit }); },
   review: (d, body) => { if (DEMO) throw new Error("read-only demo"); return postJSON(`/api/account/${encodeURIComponent(d)}/review`, body); },
 };

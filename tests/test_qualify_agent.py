@@ -127,7 +127,7 @@ def test_agent_stops_at_tool_budget_and_refuses_repeats(icp):
                    "ExtractOut": {"facts": [], "profile": {"name": "A", "one_liner": "x", "product_type": "software"}},
                    "QualifyOut": {"picks": [], "disqualifiers": []}})
     out = agent.run_agent(llm, httpx.Client(), "a.com", icp, {"product_type": "software"}, Ledger(), {}, base_res(icp))
-    assert out["tool_calls"] == 4
+    assert out["tool_calls"] == 3
     assert any(s.get("error") == "repeat refused" for s in out["steps"])
     assert out["steps"][-1]["stopped"] == "tool budget used"
 
@@ -137,7 +137,7 @@ def test_agent_search_budget_and_allowlist(icp):
                                   {"tool": "web_research", "argument": "q3", "reason": "r"}, {"tool": "fetch_page", "argument": "/admin", "reason": "r"}],
                    "ExtractOut": {"facts": [], "profile": {"name": "A", "one_liner": "x", "product_type": "software"}},
                    "QualifyOut": {"picks": [], "disqualifiers": []}}, search_text="nothing useful")
-    out = agent.run_agent(llm, httpx.Client(), "a.com", icp, {"product_type": "software"}, Ledger(), {}, base_res(icp))
+    out = agent.run_agent(llm, httpx.Client(), "a.com", icp, {"product_type": "software"}, Ledger(), {}, base_res(icp), budget={"tool_calls": 4})
     assert len(llm.searches) == 2
     errs = [s.get("error") for s in out["steps"]]
     assert "search budget used" in errs and "path not allow-listed" in errs

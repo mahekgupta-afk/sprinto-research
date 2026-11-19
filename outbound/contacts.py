@@ -114,7 +114,10 @@ class PeopleOut(BaseModel):
 
 def grounded_fallback(llm, hunter: Hunter, domain: str, company: str, order: List[str]) -> dict:
     """Named founders/CTO via grounded search; the name must appear in the search text. Then Hunter Email Finder."""
-    text, urls = llm.search("Who are the founders, CEO and CTO of %s (%s)? Give full names and titles." % (company, domain))
+    try:
+        text, urls = llm.search("Who are the founders, CEO and CTO of %s (%s)? Give full names and titles." % (company, domain))
+    except Exception as e:  # noqa: BLE001  grounding unavailable (quota/plan): no fallback, never a guess
+        return {"unreachable_names": [], "sources": [], "note": "grounded search unavailable: %s" % type(e).__name__}
     out = llm.json("From this text list ONLY people explicitly named as founder, CEO or CTO of %s. "
                    "Return names[] (full names) and titles[] (same order). If none, empty lists.\n\nTEXT:\n%s" % (company, text), PeopleOut)
     found = []
