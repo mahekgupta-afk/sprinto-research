@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+out/
+cache/
+contacts.csv
+.venv/
+.vercel
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
+# review screenshots, browser-automation snapshots
+review-screenshots/
+.playwright-mcp/
+*.webm
+shots/

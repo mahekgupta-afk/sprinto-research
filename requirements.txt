@@ -1,0 +1,9 @@
+google-genai
+httpx
+beautifulsoup4
+lxml
+pydantic>=2
+python-dotenv
+PyYAML
+pytest
+respx

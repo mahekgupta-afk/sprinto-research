@@ -1,0 +1,140 @@
+# Sprinto ICP rubric: 15 signals, 4 blocks, 100 points.
+# The LLM only picks a bucket and cites evidence IDs. Python does the maths.
+# external: true  -> the website cannot settle it; silence = unknown (never "absent").
+# needs_pages     -> a zero-point "absent" bucket only counts if these pages were readable.
+thresholds: {priority: 75, qualify: 60}
+caps:
+  no_upmarket_pull: 55
+  mature_certifications: 40
+disqualifiers:
+  min_headcount: 5
+  max_headcount: 2000
+blocks:
+  firmographic: 30
+  upmarket_pull: 25
+  compliance_trigger: 35
+  fit: 10
+signals:
+  - id: headcount
+    block: firmographic
+    max: 10
+    external: true
+    question: How many employees does the company have?
+    buckets:
+      - {id: sweet_spot, points: 10, when: "20-300 employees"}
+      - {id: edge, points: 5, when: "10-19 or 301-1000 employees"}
+      - {id: outside, points: 0, when: "outside those ranges"}
+  - id: funding_stage
+    block: firmographic
+    max: 8
+    external: true
+    question: What funding stage is the company at?
+    buckets:
+      - {id: seed_to_b, points: 8, when: "Seed through Series B"}
+      - {id: c_plus, points: 4, when: "Series C or later"}
+      - {id: bootstrapped_or_other, points: 2, when: "bootstrapped, profitable, or unclear but stated"}
+  - id: b2b_model
+    block: firmographic
+    max: 6
+    question: Does it sell to other businesses?
+    needs_pages: ["/", "/pricing"]
+    buckets:
+      - {id: b2b, points: 6, when: "sells to businesses/teams"}
+      - {id: mixed, points: 3, when: "both business and consumer"}
+      - {id: absent, points: 0, when: "consumer only"}
+  - id: market_geo
+    block: firmographic
+    max: 6
+    question: Does it sell into US/EU/UK/APAC English-speaking markets where SOC 2/ISO are asked for?
+    buckets:
+      - {id: present, points: 6, when: "clear US/EU/UK/AU/IN/SG presence"}
+      - {id: absent, points: 0, when: "clearly elsewhere"}
+  - id: enterprise_customers
+    block: upmarket_pull
+    max: 10
+    question: Do named enterprise or mid-market customers appear?
+    needs_pages: ["/customers", "/"]
+    buckets:
+      - {id: named_enterprise, points: 10, when: "named large/enterprise customers"}
+      - {id: named_smb, points: 4, when: "only small-company logos"}
+      - {id: absent, points: 0, when: "no customer proof"}
+  - id: enterprise_motion
+    block: upmarket_pull
+    max: 8
+    question: Is there a sales-led or enterprise motion (contact sales, SSO, enterprise plan)?
+    needs_pages: ["/pricing", "/"]
+    buckets:
+      - {id: enterprise_plan, points: 8, when: "enterprise plan, SSO, or contact sales"}
+      - {id: self_serve_only, points: 0, when: "self-serve only"}
+  - id: regulated_buyers
+    block: upmarket_pull
+    max: 7
+    question: Do their buyers sit in regulated industries (fintech, health, government, insurance)?
+    buckets:
+      - {id: regulated, points: 7, when: "explicit regulated-industry buyers"}
+      - {id: absent, points: 0, when: "no regulated buyers named"}
+  - id: certification_status
+    block: compliance_trigger
+    max: 10
+    question: What is their current compliance posture?
+    needs_pages: ["/security", "/trust"]
+    buckets:
+      - {id: none, points: 10, when: "no certification mentioned"}
+      - {id: in_progress, points: 9, when: "audit in progress / 'coming soon'"}
+      - {id: type1_or_one, points: 6, when: "SOC 2 Type I, or one certification only"}
+      - {id: type2_only, points: 3, when: "SOC 2 Type II only"}
+      - {id: both_mature, points: 0, when: "SOC 2 Type II AND ISO 27001"}
+  - id: security_page_gap
+    block: compliance_trigger
+    max: 6
+    question: Is there a security/trust page and is it thin or asks buyers to request documents?
+    needs_pages: ["/security", "/trust"]
+    buckets:
+      - {id: thin_or_request, points: 6, when: "page is thin or says 'request our report'"}
+      - {id: strong, points: 0, when: "comprehensive public trust center"}
+  - id: security_hiring
+    block: compliance_trigger
+    max: 6
+    external: true
+    question: Are they hiring for security, GRC or compliance roles?
+    buckets:
+      - {id: hiring, points: 6, when: "open security/GRC/compliance role"}
+      - {id: not_hiring, points: 0, when: "job board read, no such role"}
+  - id: recent_funding
+    block: compliance_trigger
+    max: 5
+    external: true
+    question: Did they raise money in the last 12 months?
+    buckets:
+      - {id: recent, points: 5, when: "raise dated within 12 months"}
+      - {id: old, points: 0, when: "raise older than 12 months"}
+  - id: sensitive_data
+    block: compliance_trigger
+    max: 8
+    question: Does the product handle sensitive customer data (PII, PHI, financial, source code)?
+    buckets:
+      - {id: high, points: 8, when: "PHI, financial, or large volumes of PII"}
+      - {id: medium, points: 4, when: "some customer business data"}
+      - {id: low, points: 0, when: "little or no sensitive data"}
+  - id: cloud_hosted
+    block: fit
+    max: 4
+    question: Is it a cloud-hosted product on AWS/GCP/Azure or similar (Sprinto integrates with these)?
+    buckets:
+      - {id: cloud, points: 4, when: "cloud/SaaS product"}
+      - {id: absent, points: 0, when: "on-prem or hardware"}
+  - id: engineering_led
+    block: fit
+    max: 3
+    question: Is it a software product with an engineering team (APIs, docs, changelog)?
+    buckets:
+      - {id: present, points: 3, when: "API/docs/developer content"}
+      - {id: absent, points: 0, when: "none visible"}
+  - id: clear_product
+    block: fit
+    max: 3
+    question: Is there a clear product and pricing or demo path?
+    needs_pages: ["/"]
+    buckets:
+      - {id: present, points: 3, when: "clear product and demo/pricing"}
+      - {id: absent, points: 0, when: "unclear"}

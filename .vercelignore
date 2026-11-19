@@ -1,0 +1,4 @@
+# upload ONLY site/ and vercel.json
+/*
+!/site
+!/vercel.json

@@ -1,0 +1,12 @@
+# Stage 1: find recently funded companies from Google News, with no LLM involved.
+queries:
+  - "raises seed round SaaS"
+  - "raises Series A software startup"
+  - "raises Series B SaaS platform"
+  - "secures funding B2B software"
+rounds_allowed: [seed, pre-seed, series a, series b, series c]
+amount_musd: {min: 2, max: 80}
+max_age_days: 45
+cooldown_days: 90
+max_candidates: 10
+exclude_words: [acquires, acquired, acquisition, layoffs, ipo, bankruptcy, crypto, token, nft, biotech, pharma, therapeutics, fund, venture capital firm, spac]
