@@ -244,12 +244,13 @@ textarea { min-height: 84px; resize: vertical; }
 .foot-base { border-top: 1px solid rgba(255, 255, 255, 0.05); padding: 18px 0 28px; font-size: 13px; }
 
 /* ---------- motion: clip-path reveals (700ms), calm ---------- */
-.reveal { clip-path: inset(0 0 100% 0); transition: clip-path 700ms var(--ease); }
-.reveal.in { clip-path: inset(-80px); }
+.reveal { transition: clip-path 700ms var(--ease); }
+.js-reveal .reveal { clip-path: inset(0 0 100% 0); }
+.js-reveal .reveal.in { clip-path: inset(-80px); }
 .fill { transition: transform 700ms var(--ease); }
 .pre .fill { transform: scaleX(0); }
 @media (prefers-reduced-motion: reduce) {
-  .reveal { clip-path: none; transition: none; }
+  .js-reveal .reveal, .js-reveal .reveal.in { clip-path: none; transition: none; }
   .fill, .svc .ico, .card, .hover-ov, .btn, .pill, .svc { transition: none; }
   .pre .fill { transform: none; }
   .svc:hover .ico, .card:hover { transform: none; }

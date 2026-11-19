@@ -100,3 +100,10 @@ def test_demo_mode_is_host_based_and_read_only():
 def test_reduced_motion_and_focus_styles_present():
     css = (WEB / "styles.css").read_text()
     assert "prefers-reduced-motion: reduce" in css and ":focus-visible" in css
+
+
+def test_content_is_never_left_hidden():
+    css = (WEB / "styles.css").read_text()
+    dom = (WEB / "js" / "dom.js").read_text()
+    assert ".js-reveal .reveal" in css and "\n.reveal { clip-path" not in css  # hidden only once JS opts in
+    assert "setTimeout" in dom and "items.forEach(show)" in dom  # hard fallback reveals everything

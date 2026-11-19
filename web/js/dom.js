@@ -52,14 +52,30 @@ export function setHl(domain, yes) {
 }
 
 const reduce = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-let io;
+const show = (n) => { n.classList.add("in"); n.classList.remove("pre"); };
+let stopReveal = () => {};
+// Content is hidden ONLY after this runs, and is always revealed by position checks, scrolling, or a hard timeout.
 export function reveal(root) {
-  const items = root.querySelectorAll(".reveal");
-  if (reduce() || !("IntersectionObserver" in window)) { items.forEach((n) => n.classList.add("in")); return; }
-  io = io || new IntersectionObserver((es) => es.forEach((e) => {
-    if (e.isIntersecting) { e.target.classList.add("in"); e.target.classList.remove("pre"); io.unobserve(e.target); }
-  }), { threshold: 0.15 });
-  items.forEach((n) => { n.classList.add("pre"); io.observe(n); });
+  stopReveal();
+  const items = [...root.querySelectorAll(".reveal")];
+  if (reduce()) { items.forEach(show); return; }
+  items.forEach((n) => n.classList.add("pre"));
+  const check = () => {
+    const vh = window.innerHeight;
+    items.forEach((n) => {
+      if (n.classList.contains("in")) return;
+      const r = n.getBoundingClientRect();
+      if (r.top < vh * 0.92 && r.bottom > 0) show(n);
+    });
+  };
+  check(); // everything already on screen is marked visible BEFORE hiding is switched on, so the first paint is never blank
+  document.documentElement.classList.add("js-reveal");
+  requestAnimationFrame(check);
+  window.addEventListener("scroll", check, { passive: true });
+  window.addEventListener("resize", check);
+  const t1 = setTimeout(() => items.forEach((n) => { if (n.getBoundingClientRect().top < window.innerHeight * 1.5) show(n); }), 600);
+  const t2 = setTimeout(() => items.forEach(show), 2500); // hard fallback: never leave anything hidden
+  stopReveal = () => { window.removeEventListener("scroll", check); window.removeEventListener("resize", check); clearTimeout(t1); clearTimeout(t2); };
 }
 
 // Typographic echo stack: four aria-hidden background copies shifted up and left, top copy is the real text.
