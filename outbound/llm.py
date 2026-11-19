@@ -19,7 +19,11 @@ def _retry(fn, sleep, tries=3):
             return fn()
         except Exception as e:  # noqa: BLE001
             code = getattr(e, "code", None) or getattr(e, "status_code", None)
-            if code in (500, 503) and i < tries - 1:
+            timed_out = "timeout" in type(e).__name__.lower() or "timed out" in str(e).lower()
+            if code == 429 and i < tries - 1:  # per-minute rate limit on the free tier: wait it out
+                sleep(25)
+                continue
+            if (code in (500, 503, 504) or timed_out) and i < tries - 1:
                 sleep(3 * (i + 1))
                 continue
             raise
@@ -38,7 +42,9 @@ class LLM:
     def client(self):
         if self._client is None:
             from google import genai
-            self._client = genai.Client(api_key=self.s.gemini_api_key)
+            from google.genai import types
+            # a hung request must fail, not block the whole batch for hours
+            self._client = genai.Client(api_key=self.s.gemini_api_key, http_options=types.HttpOptions(timeout=90_000))
         return self._client
 
     def _pace(self) -> None:
