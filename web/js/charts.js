@@ -26,10 +26,10 @@ export function rangeChart(items, line = 60) {
   const svg = s("svg", { class: "svg-chart", viewBox: `0 0 ${W} ${H}`, role: "img",
     "aria-label": "Score range before and after research, against the qualify line at " + line });
   for (let v = 0; v <= 100; v += 20) {
-    svg.append(s("line", { x1: x(v), x2: x(v), y1: top - 6, y2: H - 18, stroke: "#cfcfcf", "stroke-width": 1 }));
+    svg.append(s("line", { x1: x(v), x2: x(v), y1: top - 6, y2: H - 18, stroke: "#d4d4d4", "stroke-width": 1 }));
     svg.append(s("text", { x: x(v), y: H - 4, "text-anchor": "middle" }, String(v)));
   }
-  svg.append(s("line", { x1: x(line), x2: x(line), y1: top - 12, y2: H - 18, stroke: "#c8201a", "stroke-width": 2 }));
+  svg.append(s("line", { x1: x(line), x2: x(line), y1: top - 12, y2: H - 18, stroke: "#111", "stroke-width": 2, "stroke-dasharray": "6 4" }));
   svg.append(s("text", { x: x(line), y: top - 16, "text-anchor": "middle", class: "t-red" }, `qualify at ${line}`));
   items.forEach((it, i) => {
     const y = top + i * rowH;
@@ -55,17 +55,17 @@ export function scoreStrip(items, pass = 7) {
   const x = (v) => L + (v / 10) * (W - L - R);
   const svg = s("svg", { class: "svg-chart", viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Reviewer score per email against the pass line at " + pass });
   for (let v = 0; v <= 10; v += 2) {
-    svg.append(s("line", { x1: x(v), x2: x(v), y1: top - 6, y2: H - 18, stroke: "#cfcfcf" }));
+    svg.append(s("line", { x1: x(v), x2: x(v), y1: top - 6, y2: H - 18, stroke: "#d4d4d4" }));
     svg.append(s("text", { x: x(v), y: H - 4, "text-anchor": "middle" }, String(v)));
   }
-  svg.append(s("line", { x1: x(pass), x2: x(pass), y1: top - 12, y2: H - 18, stroke: "#c8201a", "stroke-width": 2 }));
+  svg.append(s("line", { x1: x(pass), x2: x(pass), y1: top - 12, y2: H - 18, stroke: "#111", "stroke-width": 2, "stroke-dasharray": "6 4" }));
   svg.append(s("text", { x: x(pass), y: top - 14, "text-anchor": "middle", class: "t-red" }, `rewrite below ${pass}`));
   items.forEach((it, i) => {
     const y = top + i * rowH + 12;
     const g = s("g", { "data-domain": it.domain, tabindex: "0", role: "group", "aria-label": `${it.label}: ${fmt(it.score)} of 10` });
     g.append(s("text", { x: 0, y: y + 4 }, it.label));
     g.append(s("line", { x1: x(0), x2: x(it.score), y1: y, y2: y, stroke: "#111", "stroke-width": 2 }));
-    g.append(s("circle", { cx: x(it.score), cy: y, r: 6, fill: it.score >= pass ? "#111" : "#c8201a" }));
+    g.append(s("circle", { cx: x(it.score), cy: y, r: 6, fill: it.score >= pass ? "#111" : "#fff", stroke: "#111", "stroke-width": 2 }));
     g.append(s("text", { x: x(it.score) + 12, y: y + 4, class: "t-strong" }, fmt(it.score)));
     svg.append(g);
   });
@@ -77,10 +77,10 @@ export function rangeBar(low, high, line = 60) {
   const W = 420, H = 46;
   const x = (v) => 4 + (v / 100) * (W - 8);
   const svg = s("svg", { class: "svg-chart", viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `Score ${low} to ${high} of 100, qualify line ${line}` });
-  svg.append(s("rect", { x: 4, y: 14, width: W - 8, height: 12, fill: "#f3f3f1" }));
+  svg.append(s("rect", { x: 4, y: 14, width: W - 8, height: 12, fill: "#e6e6e6" }));
   svg.append(s("rect", { x: x(low), y: 14, width: Math.max(3, x(high) - x(low)), height: 12, fill: "#fff", stroke: "#111", "stroke-width": 2 }));
   svg.append(s("rect", { x: x(0), y: 14, width: Math.max(0, x(low) - x(0)), height: 12, fill: "#111" }));
-  svg.append(s("line", { x1: x(line), x2: x(line), y1: 6, y2: 34, stroke: "#c8201a", "stroke-width": 2 }));
+  svg.append(s("line", { x1: x(line), x2: x(line), y1: 6, y2: 34, stroke: "#111", "stroke-width": 2, "stroke-dasharray": "6 4" }));
   svg.append(s("text", { x: x(line), y: 45, "text-anchor": "middle", class: "t-red" }, String(line)));
   svg.append(s("text", { x: 4, y: 45 }, "0"));
   svg.append(s("text", { x: W - 4, y: 45, "text-anchor": "end" }, "100"));

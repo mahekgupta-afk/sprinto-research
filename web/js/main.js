@@ -13,10 +13,13 @@ async function draw() {
   const r = route();
   document.querySelectorAll("#nav a").forEach((a) => (a.dataset.route === r ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
   document.title = `${{ home: "Home", queue: "Queue", accounts: "Accounts", pipeline: "Pipeline" }[r]} · Outbound Autopilot`;
-  if (r === "home") renderHome(main, rows, openDrawer);
-  else if (r === "queue") await renderQueue(main, rows, openDrawer);
-  else if (r === "accounts") renderAccounts(main, rows, openDrawer, startPolling);
-  else renderPipeline(main, rows, openDrawer);
+  if (r === "home") { renderHome(main, rows, openDrawer); return; }
+  clear(main);
+  const box = h("div", { class: "wrap" });
+  main.append(box);
+  if (r === "queue") await renderQueue(box, rows, openDrawer);
+  else if (r === "accounts") renderAccounts(box, rows, openDrawer, startPolling);
+  else renderPipeline(box, rows, openDrawer);
 }
 
 async function load() {

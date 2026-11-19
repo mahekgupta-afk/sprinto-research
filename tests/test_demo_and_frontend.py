@@ -87,7 +87,7 @@ def test_no_inline_styles_or_external_resources():
     assert " style=" not in html and "<style" not in html and "onclick=" not in html
     for f in [WEB / "index.html", WEB / "styles.css", *js_files()]:
         for url in re.findall(r"https?://[^\s\"')]+", f.read_text()):
-            assert url.startswith("http://www.w3.org/2000/svg") or url.startswith("https://") and "linkedin" in url or False, (f.name, url)
+            assert url.startswith("http://www.w3.org/2000/svg") or url.startswith("https://github.com/mahekgupta-afk/sprinto-research") or ("linkedin" in url), (f.name, url)
 
 
 def test_demo_mode_is_host_based_and_read_only():

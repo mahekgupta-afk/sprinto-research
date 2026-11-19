@@ -1,4 +1,4 @@
-import { h, clear, STATUS_LABEL, VERDICT_LABEL, fmt, secs, plural, reveal } from "./dom.js";
+import { h, s, clear, echo, STATUS_LABEL, VERDICT_LABEL, fmt, secs, plural, reveal } from "./dom.js";
 import { barRows, rangeChart, scoreStrip } from "./charts.js";
 import { api, DEMO } from "./api.js";
 
@@ -20,8 +20,21 @@ export function metrics(rows) {
     reviewerAvg: scored.length ? scored.reduce((a, r) => a + r.reviewer_avg, 0) / scored.length : null };
 }
 
-function section(no, title, lede, chart) {
-  return h("section", { class: "section grid reveal", "aria-labelledby": `h-${no}` },
+const ICONS = {
+  search: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/>',
+  scale: '<path d="M12 4v16M5 20h14"/><path d="M5 8h14"/><path d="m5 8-3 6a3 3 0 0 0 6 0zM19 8l-3 6a3 3 0 0 0 6 0z"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+};
+function icon(name) {
+  const svg = s("svg", { class: "i", viewBox: "0 0 24 24", "aria-hidden": "true" });
+  const tmp = new DOMParser().parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${ICONS[name]}</svg>`, "image/svg+xml").documentElement;
+  [...tmp.childNodes].forEach((n) => svg.append(document.importNode(n, true)));
+  return svg;
+}
+
+function detail(no, title, lede, chart) {
+  return h("section", { class: "detail reveal", "aria-labelledby": `h-${no}` },
     h("div", { class: "claim" }, h("p", { class: "sec-no", text: `0${no}` }), h("h2", { id: `h-${no}`, text: title }), lede ? h("p", { class: "lede", text: lede }) : null),
     h("div", { class: "chart" }, chart));
 }
@@ -30,63 +43,82 @@ export function renderHome(root, rows, openAccount) {
   clear(root);
   const m = metrics(rows);
   if (!rows.length) {
-    root.append(h("div", { class: "hero" }, h("h1", { text: "No accounts yet." }), h("p", { text: DEMO ? "The demo has no data." : "Run research on a list of domains from the Accounts view." })));
+    root.append(h("div", { class: "wrap hero" }, h("h1", { text: "No accounts yet." }), h("p", { text: DEMO ? "The demo has no data." : "Run research on a list of domains from the Accounts view." })));
     return;
   }
   const synthetic = rows.some((r) => r.synthetic);
   const mid = ((BASELINE[0] + BASELINE[1]) / 2) * 60;
-  root.append(h("div", { class: "hero reveal" },
-    h("h1", {}, `${secs(m.avg)} per company, not `, h("em", { text: `${BASELINE[0]} to ${BASELINE[1]} minutes` }), "."),
-    h("p", { text: `${plural(m.n, "company", "companies")} researched, qualified and drafted with no human in the loop. Every decision below cites evidence from the company's own pages.` }),
+  const wrap = h("div", { class: "wrap" });
+
+  // hero: the echo stack
+  wrap.append(h("section", { class: "hero reveal", "aria-labelledby": "hero-h" },
+    echo(secs(m.avg)),
+    h("h1", { id: "hero-h", text: `per company, not ${BASELINE[0]} to ${BASELINE[1]} minutes.` }),
+    h("p", { text: `${plural(m.n, "company", "companies")} researched, qualified and drafted with no human in the loop. Every decision cites evidence from the company's own pages.` }),
     synthetic ? h("span", { class: "sample", text: "Synthetic sample data: fictional .test companies" }) : null));
 
-  // 01 time
-  const maxS = BASELINE[1] * 60;
-  root.append(section(1, "Hours of research become minutes of review.",
-    `Average run time per company across ${plural(m.n, "company", "companies")}, compared with the ${BASELINE[0]} to ${BASELINE[1]} minutes the Growth Lead spends by hand.`,
-    h("div", {}, barRows([
-      { label: "By hand", sub: `${BASELINE[0]}–${BASELINE[1]} min each`, value: mid, display: `${(mid / 60).toFixed(1)} min (midpoint)` , cls: "hollow" },
-      { label: "Autopilot", sub: "mean of this run", value: m.avg, display: secs(m.avg) },
-    ], maxS), h("p", { class: "note", text: `Bars share one scale: the full track is ${BASELINE[1]} minutes. At the midpoint, the same ${m.n} companies would take ${((mid * m.n) / 3600).toFixed(1)} hours by hand and took ${((m.avg * m.n) / 60).toFixed(0)} minutes here.` }))));
+  // narrative
+  wrap.append(h("section", { class: "philo reveal", "aria-label": "How it works" },
+    h("q", {}, "Python decides, Gemini reads, and every claim carries its ", h("em", { text: "evidence" }), "."),
+    h("div", { class: "cols3" },
+      h("div", {}, h("h3", { text: "Cited, not guessed" }), h("p", { text: "A fact counts only if its exact quote appears on the page. Anything else is dropped before it can score." })),
+      h("div", {}, h("h3", { text: "Unknown is not absent" }), h("p", { text: "A blocked page or a silent website widens the score range. It never subtracts points." })),
+      h("div", {}, h("h3", { text: "You approve every send" }), h("p", { text: "Drafts wait in the Queue. Your edits are re-checked against every rule and teach the next drafts." })))));
 
-  // 02 overturned
+  // asymmetric showcase: rectangle, pill, circle, wide rectangle
   const ov = m.overturned.map((r) => ({ domain: r.domain, label: r.company, before: r.fixed, after: r.final,
     beforeVerdict: VERDICT_LABEL[r.verdict_fixed] || r.verdict_fixed, afterVerdict: VERDICT_LABEL[r.verdict_final] || r.verdict_final }));
-  root.append(section(2, ov.length ? `Research overturned ${plural(ov.length, "verdict")}.` : "Research overturned no verdicts.",
-    "A fixed pipeline scores a thin website once and stops. The agent loop keeps researching while the score range still straddles the qualify line at 60.",
-    ov.length ? h("div", {}, rangeChart(ov), h("p", { class: "note", text: "Hollow bar: score range from the website alone (low = proven points, high = if every unknown scored full marks). Solid bar: after the agent fetched pages, searched, or read job boards. A verdict is certain only when the range sits wholly on one side of the line." })) : h("p", { class: "empty", text: "Every verdict stood after research in this run." })));
+  const drafted = m.sent.length + m.pending.length;
+  wrap.append(h("div", { class: "shell" },
+    h("section", { class: "tile t-rect reveal", "aria-labelledby": "t1" }, h("h2", { id: "t1", text: "Hours of research become minutes of review." }),
+      h("p", { class: "lede", text: `Mean run time per company across ${plural(m.n, "company", "companies")}, against the ${BASELINE[0]} to ${BASELINE[1]} minutes the Growth Lead spends by hand.` }),
+      h("div", { class: "chart-in" }, barRows([
+        { label: "By hand", sub: `${BASELINE[0]}–${BASELINE[1]} min each`, value: mid, display: `${(mid / 60).toFixed(1)} min (midpoint)`, cls: "hollow" },
+        { label: "Autopilot", sub: "mean of this run", value: m.avg, display: secs(m.avg) }], BASELINE[1] * 60),
+        h("p", { class: "note", text: `One scale: the full track is ${BASELINE[1]} minutes. At the midpoint these ${m.n} companies take ${((mid * m.n) / 3600).toFixed(1)} hours by hand, and took ${((m.avg * m.n) / 60).toFixed(0)} minutes here.` }))),
+    h("section", { class: "tile t-pill reveal", tabindex: "0", "aria-label": "Emails sent, awaiting approval and held" },
+      h("div", { class: "stack" },
+        h("div", {}, h("p", { class: "big", text: String(m.sent.length) }), h("span", { text: "sent to your inbox" })),
+        h("div", {}, h("p", { class: "big", text: String(m.pending.length) }), h("span", { text: "awaiting your approval" })),
+        h("div", {}, h("p", { class: "big", text: String(m.held.length) }), h("span", { text: "held: failed a rule" }))),
+      h("div", { class: "hover-ov", "aria-hidden": "true", text: m.reviewerAvg == null ? "No reviewer scores yet" : `Reviewer average ${fmt(m.reviewerAvg)} of 10` })),
+    h("section", { class: "tile t-circle reveal", "aria-label": "Funnel result" },
+      h("p", { class: "big", text: `${drafted}/${m.n}` }), h("p", { text: `domains became a sendable email. The rest were screened out, unreadable or had no contact.` })),
+    h("section", { class: "tile t-wide reveal", "aria-labelledby": "t4" },
+      h("h2", { id: "t4", text: ov.length ? `Research overturned ${plural(ov.length, "verdict")}.` : "Research overturned no verdicts." }),
+      h("p", { class: "lede", text: "The agent loop keeps researching while the score range straddles the qualify line at 60." }),
+      h("div", { class: "chart-in" }, ov.length ? [rangeChart(ov), h("p", { class: "note", text: "Hollow bar: range from the website alone. Solid bar: after the agent fetched pages or read job boards. Dashed line: qualify at 60." })] : h("p", { class: "empty", text: "Every verdict stood after research in this run." })))));
 
-  // 03 funnel
+  // details
   const stages = [
-    ["Domains in", m.n, ""],
-    ["Site readable", m.readable.length, "at least one page loaded"],
-    ["Qualified", m.qualified.length, "score line 60 cleared, no disqualifier"],
-    ["Contact found", m.withContact.length, "a titled decision-maker with an address"],
-    ["Email drafted", m.sent.length + m.pending.length, "passed all validator rules"],
-    ["Sent after your approval", m.sent.length, "approved by you, sent to your own inbox"],
-  ];
+    ["Domains in", m.n, ""], ["Site readable", m.readable.length, "at least one page loaded"], ["Qualified", m.qualified.length, "score line 60 cleared, no disqualifier"],
+    ["Contact found", m.withContact.length, "a titled decision-maker with an address"], ["Email drafted", drafted, "passed all validator rules"],
+    ["Sent after your approval", m.sent.length, "approved by you, sent to your own inbox"]];
   const reasons = {};
   rows.forEach((r) => { if (r.drop_reason) reasons[r.drop_reason] = (reasons[r.drop_reason] || 0) + 1; });
-  root.append(section(3, `${m.sent.length + m.pending.length} of ${m.n} became a sendable email.`, "Where companies drop out, and why. Each bar is a count of companies, drawn against the number of domains that came in.",
+  wrap.append(detail(1, `${drafted} of ${m.n} became a sendable email.`, "Where companies drop out, and why. Each bar counts companies, drawn against the domains that came in.",
     h("div", {}, barRows(stages.map(([label, v, sub]) => ({ label, sub, value: v, display: String(v) })), Math.max(1, m.n)),
-      h("table", { class: "ledger" }, h("caption", { text: "Drop-out reasons" }),
-        h("thead", {}, h("tr", {}, h("th", { text: "Reason" }), h("th", { class: "n", text: "Companies" }))),
+      h("table", { class: "ledger" }, h("caption", { text: "Drop-out reasons" }), h("thead", {}, h("tr", {}, h("th", { text: "Reason" }), h("th", { class: "n", text: "Companies" }))),
         h("tbody", {}, Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, v]) => h("tr", {}, h("td", { text: k }), h("td", { class: "n", text: String(v) }))))))));
-
-  // 04 sent vs held
-  const sh = m.sent.length + m.pending.length + m.held.length;
-  root.append(section(4, `${m.sent.length} sent, ${m.pending.length} awaiting you, ${m.held.length} held back.`,
-    `Of ${plural(sh, "email")} drafted for qualified companies, an email is drafted only if it passes every code rule, and goes out only after you approve it. Reviewer average: ${m.reviewerAvg == null ? "n/a" : fmt(m.reviewerAvg) + " of 10"}.`,
+  const sh = drafted + m.held.length;
+  wrap.append(detail(2, "Every email is scored before you see it.", `Of ${plural(sh, "email")} drafted for qualified companies, reviewer average: ${m.reviewerAvg == null ? "n/a" : fmt(m.reviewerAvg) + " of 10"}.`,
     h("div", {}, m.scored.length ? scoreStrip(m.scored.map((r) => ({ domain: r.domain, label: r.company, score: r.reviewer_avg }))) : h("p", { class: "empty", text: "No reviewed emails yet." }),
-      h("p", { class: "note", text: "Each dot is the mean of three reviewer scores (specificity, relevance, reply likelihood) for the email that was sent. Below 7 the draft is rewritten with the reviewer's critique, up to four drafts. If none passes the code rules, nothing is sent." }))));
-
-  // 05 needs you
+      h("p", { class: "note", text: "Each dot is the mean of three reviewer scores (specificity, relevance, reply likelihood). Below 7 the draft is rewritten with the critique, up to four drafts. If none passes the code rules, nothing is sent." }))));
   const needs = rows.filter((r) => r.needs);
-  const list = needs.length ? h("ul", { class: "needs" }, needs.map((r) => h("li", { "data-domain": r.domain },
-    h("div", {}, h("button", { class: "row-btn", type: "button", onclick: () => openAccount(r.domain), text: r.company }), h("span", { text: r.needs })),
-    h("span", { class: "tag " + (r.status === "sent" ? "mute" : "red"), text: STATUS_LABEL[r.status] })))) : h("p", { class: "empty", text: "Nothing needs you." });
-  root.append(section(5, needs.length ? `${plural(needs.length, "account")} need${needs.length === 1 ? "s" : ""} you.` : "Nothing needs you.",
-    "Drafts to approve, held emails, missing contacts, unreadable sites, and sent emails whose replies are not logged yet.", list));
+  wrap.append(detail(3, needs.length ? `${plural(needs.length, "account")} need${needs.length === 1 ? "s" : ""} you.` : "Nothing needs you.",
+    "Drafts to approve, held emails, missing contacts, unreadable sites, and sent emails whose replies are not logged yet.",
+    needs.length ? h("ul", { class: "needs" }, needs.map((r) => h("li", { "data-domain": r.domain },
+      h("div", {}, h("button", { class: "row-btn", type: "button", onclick: () => openAccount(r.domain), text: r.company }), h("span", { text: r.needs })),
+      h("span", { class: "tag " + (r.status === "sent" ? "mute" : "red"), text: STATUS_LABEL[r.status] })))) : h("p", { class: "empty", text: "Nothing needs you." })));
+
+  // service cards
+  const card = (ico, title, text, href, cta) => h("a", { class: "svc reveal", href },
+    h("span", { class: "ico" }, icon(ico)), h("h3", { text: title }), h("p", { text }), h("span", { class: "cta" }, cta, icon("arrow")));
+  wrap.append(h("div", { class: "cards3" },
+    card("search", "Research", "Find recently funded companies, read their pages, and keep only facts whose quote is on the page.", "#/accounts", "Open accounts"),
+    card("scale", "Qualify", "Score each company against the ICP. A range, not a guess, until the evidence settles it.", "#/pipeline", "Open pipeline"),
+    card("mail", "Approve", "Read the draft with its evidence, edit it, rate it, and send it to your own inbox.", "#/queue", "Open queue")));
+  root.append(wrap);
   reveal(root);
 }
 

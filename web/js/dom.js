@@ -61,3 +61,11 @@ export function reveal(root) {
   }), { threshold: 0.15 });
   items.forEach((n) => { n.classList.add("pre"); io.observe(n); });
 }
+
+// Typographic echo stack: four aria-hidden background copies shifted up and left, top copy is the real text.
+export function echo(text) {
+  const wrap = h("span", { class: "echo" });
+  ["e4", "e3", "e2", "e1"].forEach((c) => wrap.append(h("span", { class: "echo-l " + c, "aria-hidden": "true", text })));
+  wrap.append(h("span", { class: "echo-top", text }));
+  return wrap;
+}
